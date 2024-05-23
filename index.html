@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JavaScript Game 1- moving character, red bullets, Health</title>
+    <title>EPIC GAME!!</title>
     <style>
         body {
             margin: 0;
@@ -131,7 +131,7 @@
                     if (isColliding(player, bullet)) {
                         // Player got hit
                         if (bullet.className == 'heals') {
-                            health += 10;
+                            health += 20;
                             var snd = new Audio("healing-tf2.wav");
                             snd.play();
                             if (health > 150) {

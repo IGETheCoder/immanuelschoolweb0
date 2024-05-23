@@ -1,14 +1,246 @@
-<DOCTYPE html>
-  <html>
-    <head>
-      <title>This Is A Title</title>
-    </head>
+<!DOCTYPE html>
+<html lang="en">
 
-    <body>
-      <p>This is a</p>
-      <h1>VERY BIG HEADING</h1>
-      <h2>BIG HEADING</h2>
-      <h3>MID-SIZED HEADING</h3>
-      <h4>SMALL HEADING</h4>
-    </body>
-  </html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Game 1- moving character, red bullets, Health</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+            color: white;
+        }
+
+        #player {
+            position: absolute;
+            left: 0;
+            /* Set initial left position */
+            top: 50%;
+            /* Set initial top position */
+            transform: translateY(-50%);
+        }
+
+        .bullet {
+            position: absolute;
+            background-color: red;
+            width: 20px;
+            height: 10px;
+        }
+
+        .heals {
+            position: absolute;
+            background-color: green;
+            width: 40px;
+            height: 20px;
+        }
+
+        .health {
+            color: lightgreen;
+        }
+
+        .healthlow {
+            color: red;
+        }
+
+        .healthover {
+            color: cyan;
+        }
+    </style>
+</head>
+
+<body>
+    <img id="player" src="https://wiki.teamfortress.com/w/images/thumb/b/b6/Heavy_Harness.png/250px-Heavy_Harness.png"
+        width="150" height="150">
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var player = document.getElementById('player');
+            var playerTop = player.offsetTop; // Initial top position
+            var playerLeft = player.offsetLeft; // Initial left position
+            var playerSpeed = 45; // Player speed
+            var bulletSpeed = 10; // Bullet speed
+            var bullets = [];
+            var health = 100;
+            var difficulty = 0;
+            var dead = false;
+
+            function movePlayer(direction) {
+                if (dead) {
+                    return;
+                }
+
+                switch (direction) {
+                    case 'up':
+                        if (playerTop > player.offsetHeight) {
+                            playerTop -= playerSpeed;
+                        }
+                        break;
+                    case 'down':
+                        if (playerTop < window.innerHeight - player.offsetHeight) {
+                            playerTop += playerSpeed;
+                        }
+                        break;
+                    case 'right':
+                        if (playerLeft < window.innerWidth - player.offsetWidth) {
+                            playerLeft += playerSpeed;
+                        }
+                        break;
+                    case 'left':
+                        if (playerLeft > 0) {
+                            playerLeft -= playerSpeed;
+                        }
+                        break;
+                }
+                player.style.top = playerTop + 'px';
+                player.style.left = playerLeft + 'px';
+            }
+
+            function createBullet() {
+                if (Math.random() > 0.95) {
+                    // Healing Bullet
+                    var bullet = document.createElement('div');
+                    bullet.className = 'heals';
+                    bullet.style.top = (Math.random() * (window.innerHeight - bullet.offsetHeight)) + 'px';
+                    bullet.style.left = window.innerWidth + 'px';
+                    document.body.appendChild(bullet);
+                    bullets.push(bullet);
+                }
+                else {
+                    // Danger Bullet
+                    var bullet = document.createElement('div');
+                    bullet.className = 'bullet';
+                    bullet.style.top = (Math.random() * (window.innerHeight - bullet.offsetHeight)) + 'px';
+                    bullet.style.left = window.innerWidth + 'px';
+                    document.body.appendChild(bullet);
+                    bullets.push(bullet);
+                }
+            }
+
+            function moveBullets() {
+                bullets.forEach(function (bullet, index) {
+                    if (dead) {
+                        bullets.remove(bullet);
+                    }
+
+                    var bulletLeft = bullet.offsetLeft;
+                    bulletLeft -= bulletSpeed; // Bullet speed
+                    bullet.style.left = bulletLeft + 'px';
+
+                    // Check for collision with player
+                    if (isColliding(player, bullet)) {
+                        // Player got hit
+                        if (bullet.className == 'heals') {
+                            health += 10;
+                            var snd = new Audio("healing-tf2.wav");
+                            snd.play();
+                            if (health > 150) {
+                                health = 150
+                            }
+                        } else {
+                            health -= 5;
+                            var snd = new Audio("crit-hit-tf2.wav");
+                            snd.play();
+                        }
+                        updateHealthDisplay();
+                        bullet.remove();
+                        bullets.splice(index, 1);
+                    }
+
+                    // Remove bullets that go out of the screen
+                    if (bulletLeft < 0) {
+                        if (health < 100) {
+                            health++;
+                            updateHealthDisplay();
+                        }
+                        bullet.remove();
+                        bullets.splice(index, 1);
+                    }
+                });
+            }
+
+            function updateHealthDisplay() {
+                if (dead) {
+                    document.getElementById('health').innerText = 'You died :(';
+                    return;
+                }
+                document.getElementById('health').innerText = 'Health: ' + health;
+
+                if (health < 40) {
+                    document.getElementById('health').className = 'healthlow';
+                    if (health <= 0) {
+                        dead = true;
+                        document.getElementById('health').innerText = 'You died :(';
+                        var snd = new Audio("Heavy_domination17.wav");
+                        snd.play();
+                    }
+                } else if (health > 100) {
+                    document.getElementById('health').className = 'healthover';
+                } else {
+                    document.getElementById('health').className = 'health';
+                }
+            }
+
+            function incrementDifficulty() {
+                if (dead) {
+                    return;
+                }
+                if (Math.random() > 0.98) {
+                    if (difficulty < 80) {
+                        difficulty++;
+                        document.getElementById('difficulty').innerText = 'Difficulty: ' + difficulty;
+                        setInterval(createBullet, 4000); // Create bullets
+                    }
+                    else {
+                        document.getElementById('difficulty').innerText = 'Difficulty: MAX!!!';
+                    }
+                }
+            }
+
+            function decreaseOverheal() {
+                if (health > 100) {
+                    health--;
+                    updateHealthDisplay();
+                }
+            }
+
+            function isColliding(element1, element2) {
+                var rect1 = element1.getBoundingClientRect();
+                var rect2 = element2.getBoundingClientRect();
+                return !(rect1.right < rect2.left ||
+                    rect1.left > rect2.right ||
+                    rect1.bottom < rect2.top ||
+                    rect1.top > rect2.bottom);
+            }
+
+            document.addEventListener('keydown', function (event) {
+                switch (event.key) {
+                    case 'ArrowUp':
+                        movePlayer('up');
+                        break;
+                    case 'ArrowDown':
+                        movePlayer('down');
+                        break;
+                    case 'ArrowRight':
+                        movePlayer('right');
+                        break;
+                    case 'ArrowLeft':
+                        movePlayer('left');
+                        break;
+                }
+            });
+
+            setInterval(createBullet, 300); // Create bullets
+            setInterval(moveBullets, 20); // Move bullets
+            setInterval(incrementDifficulty, 20) // Increase Difficulty
+            setInterval(decreaseOverheal, 500) // Decreases Overhealed Health
+        });
+    </script>
+    <p>Difficulty caps at 80 and randomly ticks up. Each bullet deals 5 damage and each miss from a bullet heals you.
+        <br>Good Luck! You need it.
+    </p>
+    <p id="health" , class="health">Health: 100</p>
+    <p id="difficulty">Difficulty: 0</p>
+</body>
+
+</html>
